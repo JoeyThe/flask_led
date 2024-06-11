@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Joey's website</title>
+        <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/mainpage.css') }}">
+    </head>
+    <body onload="onloadServicePopulate()">
+        <div>
+            <p>Hello! Welcome to my website!</p>
+            <p>Socials:</p>
+            <p><a href="https://x.com/the_____joey?s=21&t=zIZMh7HGt0c417RNxSF-Ew">Twitter</a><p>
+            <p><a href="https://www.instagram.com/the_joey_/">Instagram</a><p>
+            <p>The following list is for easily accessing each of the sites I am testing:</p>
+            <p><a href="/service_status/mc_server.service">Minecraft Server service using normal href to URL</a></p>
+            <p><a href="/service_status/ard_led.service">Arduino LED service using normal href to URL</a></p>
+            <p>Displaying the status of various services<p>
+            <div id="tab-container">
+                <p class="tab active-tab" onclick="openTab('mc_content')">MC Service</p>
+                <p class="tab" onclick="openTab('ard_content')">Arduino LED Service</p>
+            </div>
+            <div id="mc_content" class="tab-content" style="display: block;">
+                <p id="mc_request_content"></p>
+                <button id="mc_update_button" type="button">Update Status</button>
+            </div>
+            <div id="ard_content" class="tab-content" style="display: none;">
+                <p id="ard_request_content"></p>
+                <button id="ard_update_button" type="button">Update Status</button>
+            </div>
+            <div id="post-container">
+                <form method="post">
+                    <label for="bird_id">Bird ID*</label>
+                    <br>
+                    <input type="text" name="bird_id"
+                           placeholder="Bird ID"
+                           value="{{ request.form['bird_id'] }}"></input>
+                    <br>
+                    <label for="region_id">Region ID*</label>
+                    <br>
+                    <input type="text" name="region_id"
+                           placeholder="Region ID"
+                           value="{{ request.form['region_id'] }}"></input>
+                    <br>
+                    <label for="optional_days_back">Days Back</label>
+                    <br>
+                    <input type="text" name="optional_days_back"
+                           placeholder="Days Back"
+                           value="{{ request.form['optional_days_back'] }}"></input>
+                    <br>
+                    <label for="optional_max_results">Max Results</label>
+                    <br>
+                    <input type="text" name="optional_max_results"
+                           placeholder="Max Results"
+                           value="{{ request.form['optional_max_results'] }}"></input>
+                    <p>* Indicates a required field</p>
+                    <label for="content">Get Response Content</label>
+                    <br>
+                    <textarea name="bird_get_resp"
+                              placeholder="Get response content"
+                              rows="15"
+                              cols="60"
+                              >{{ bird_get_resp }}</textarea>
+                    <br>
+                    <button type="submit">Submit</button>
+                </form>
+            </div>
+            <script>
+                function openTab(tabId)
+                {
+                    // Hide all tab contents
+                    var tabContents = document.getElementsByClassName('tab-content');
+                    for (var i = 0; i < tabContents.length; i++) 
+                    {
+                        tabContents[i].style.display = 'none';
+                    }
+                    // Remove 'active-tab' class from all tabs
+                    var tabs = document.getElementsByClassName('tab');
+                    for (var i = 0; i < tabs.length; i++) 
+                    {
+                        tabs[i].classList.remove('active-tab');
+                    }
+                    // Show the selected tab content and mark it as active
+                    document.getElementById(tabId).style.display = 'block';
+                    document.querySelector('[onclick="openTab(\'' + tabId + '\')"]').classList.add('active-tab');
+                }
+
+                function httpGetAsync(theUrl, callback)
+                {
+                    var xmlHttp = new XMLHttpRequest();
+                    xmlHttp.onreadystatechange = function() 
+                    {
+                        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) 
+                        {
+                            callback(xmlHttp.responseText);
+                        }
+                    }
+                    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+                    xmlHttp.send(null);
+                }
+
+                function logMCServiceStatus(response)
+                {
+                    document.getElementById("mc_request_content").innerText = response;
+                }
+
+                function logArdServiceStatus(response)
+                {
+                    document.getElementById("ard_request_content").innerText = response;
+                }
+
+                function onloadServicePopulate()
+                {
+                    httpGetAsync('/service_status/mc_server.service', logMCServiceStatus);
+                    httpGetAsync('/service_status/ard_led.service', logArdServiceStatus);
+                }
+                
+                <!-- Callbacks -->
+                document.getElementById("mc_update_button").addEventListener("click", function(){httpGetAsync('/service_status/mc_server.service', logMCServiceStatus)});
+                document.getElementById("ard_update_button").addEventListener("click", function(){httpGetAsync('/service_status/ard_led.service', logArdServiceStatus)});
+            </script>
+        </div>
+    </body>
+</html>
