@@ -1,3 +1,5 @@
 # Ignore venv except for requirements.txt
 venv/*
 !venv/requirements.txt
+
+__pycache__

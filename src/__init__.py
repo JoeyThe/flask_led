@@ -1,88 +1,97 @@
-from flask import Flask, render_template, request, flash
+from flask import Flask, render_template, request, flash, session
 import subprocess
 from markupsafe import escape
 import sqlite3
 import requests
+import json
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'tangeloines'
 
-def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-@app.route('/flask_proj', methods=('GET', 'POST'))
-def hello_world():
-    if request.method == 'POST':
-        bird_id = request.form['bird_id']
-        region_id = request.form['region_id']
-        optional_days_back = request.form['optional_days_back']
-        optional_max_results = request.form['optional_max_results']
-        # Check to make sure we got the required fields
-        if bird_id == "" or region_id == "":
-            print("Bird ID and Region ID must be supplied")
-            # Code to generate/return an index page with warning text
-            # Can these checks also be done by JS?
-        # Check to make sure optional parameters are integers
-        try:
-            if optional_days_back != "":
-                optional_days_back_int = int(optional_days_back)
-            if optional_max_results != "":
-                optional_max_results_int = int(optional_max_results)
-        except Exception as e:
-            print("Days Back and Max Results must be integers")
-        bird_get_resp = getSpeciesInfoForRegion(region_id,bird_id,optional_days_back,optional_max_results)
-        bird_data = {
-            "Common Name"       : bird_get_resp[0]['comName'],
-            "Scientific Name"   : bird_get_resp[0]['sciName'],
-            "Date Observed"     : bird_get_resp[0]['obsDt'],   
-            "Location Observed" : bird_get_resp[0]['locName'],
-            "Number Observed"   : str(bird_get_resp[0]['howMany'])
+class FlaskLED():
+    def __init__(self):
+        self.configs = {
+            "state": "off",
+            "color": [0,0,0],
+            "sv": 0
         }
-        bird_data_txt = "\n".join([field+" = "+bird_data[field] for field in bird_data])
-        return render_template('index.html', bird_get_resp=bird_data_txt)
-        
-            # Code to generate/return an index page with warning text
-            # Can these checks also be done by JS?
-        # if not title:
-        #     flash('Title is required!')
-        # elif not content:
-        #     flash('Content is required!')
-        # else:
-        #     conn = get_db_connection()
-        #     conn.execute('INSERT INTO posts (title, content) VALUES (?, ?)',
-        #                 (title, content))
-        #     conn.commit()
-        #     posts = conn.execute('SELECT * FROM posts').fetchall()
-        #     for post in posts:
-        #         print(str(post['id'])+", "+post['title']+", "+post['content'])
-        #     conn.close()
-    return render_template('index.html')
+        self.sessions = 0
+        self.valid_states = ["on", "off"]
+        self.valid_color_sv_range = {"min": 0, "max": 255}
+        self.ard_file_path = "src/services/led_option.json"
 
-@app.get('/service_status/<service>')
-def populate_mc_info(service):
-    # Run subprocess for getting service status
-    try:
-        sub = subprocess.run(['systemctl','status',escape(service)], check=False, stdout=subprocess.PIPE)
-        output = sub.stdout.decode()
-        # output = output.replace('\n','<br>')
-        return output
-    except Exception as e:
-        app.logger.ERROR(e)
-        return "Error"
+    # def get_chcv(self):
+    #     return self.CHSV
+    
+    # def set_chsv(
+    #     self, 
+    #     color: list = None,
+    #     sv: int = None
+    # ) -> bool:
+    #     # For all None parameters, set them to the class attribute value
+    #     if color is None:
+    #         c = self.CHSV["C"]
+    #     if h is None:
+    #         h = self.CHSV["H"]
+    #     if sv is None:
+    #         sv = self.CHSV["SV"]
+    #     # Check that all passed values are ints and within range thresholds
+    #     if isinstance(c, int) and  isinstance(c, int) and isinstance(c, int) and (c < 256 and c > -1) and (h < 256 and h > -1) and (sv < 256 and sv > -1):
+    #         self.CHSV["C"] = c
+    #         self.CHSV["H"] = h
+    #         self.CHSV["SV"] = sv
+    #         return True
+    #     else:
+    #         return False
 
-# Non-app funcitons
-def getSpeciesInfoForRegion(regionCode, speciesCode, back=30, maxResults=1):
-    back = 30
-    maxResults = 1
-    params = {
-        'back': back,
-        'maxResults': maxResults
-    }
-    headers = {'X-eBirdApiToken': '2fkoo1rimpng'}
-    url = f'https://api.ebird.org/v2/data/obs/{regionCode}/recent/{speciesCode}'
-    r = requests.get(url, headers=headers, params=params)
-    data = r.json()
-    print(data)
-    return data
+flask_led = FlaskLED()
+
+# Main route
+@app.route('/flask_led', methods=('GET', 'POST'))
+def hello_world():
+    if flask_led.sessions < 1:
+        flask_led.sessions += 1
+        return render_template('index.html')
+    else:
+        return "Too many sessions"
+
+# Update whatever configs are passed
+@app.route('/update_led_config', methods=['GET'])
+def update_led_config():
+    with open(flask_led.ard_file_path, "r+") as f:
+        data = json.load(f)
+        # Loop through arguments
+        for arg in request.args:
+            # If the arg is not in the configs, return
+            if arg not in flask_led.configs:
+                print("Passed invalid query argument, Error 404 lol")
+                return "BAD ARG"
+            # Check each argument
+            # TODO: Incorporate type checks here... What if we get somthing we are not expecting?
+            if arg == "state":
+                if request.args[arg] not in flask_led.valid_states:
+                    print("Passed invalid state, Error 404 lol")
+                    return "BAD"
+                else:
+                    data["state"] = request.args[arg]
+            if arg == "color":
+                # Convert to int
+                arg = [int(val) for val in request.args[arg].split(",")]
+                for color in arg:
+                    if color < flask_led.valid_color_sv_range["min"] or color > flask_led.valid_color_sv_range["max"]:
+                        print("Passed invalid color value, Error 404 lol")
+                        return "BAD"
+                    # Use default dict so we can avoid this?
+                else:
+                    data["color"] = [*arg]
+            if arg == "sv":
+                val = int(request.args[arg])
+                if val < flask_led.valid_color_sv_range["min"] or val > flask_led.valid_color_sv_range["max"]:
+                    print("Passed invalid sv value, Error 404 lol")
+                    return "BAD"
+                else:
+                    data["sv"] = val
+        # Write new data
+        f.seek(0)
+        json.dump(data, f)
+        f.truncate()
+    return str(data)
