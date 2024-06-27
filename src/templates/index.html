@@ -8,13 +8,13 @@
         <p class="led-family-text">Joey's room LED website!:)</p>
         <div id="activate-session-container">
             <label id="session-switch" class="switch">
-                <input name="session-toggle-post" value="value" id="session-toggle" type="checkbox" data-state="off" onclick="toggleSession()" unchecked>
+                <input name="session-toggle-post" value="value" id="session-toggle" type="checkbox" data-state="0" onclick="toggleSession()" unchecked>
                 <span class="slider round"></span>
             </label>
         </div>
         <div id="on-off-container">
             <label id="led-switch" class="switch">
-                <input name="led-toggle-post" value="value" id="led-toggle" type="checkbox" data-state="off" onclick="toggleLeds(event)" unchecked>
+                <input name="led-toggle-post" value="value" id="led-toggle" type="checkbox" data-state="0" onclick="toggleLeds(event)" unchecked>
                 <span class="slider round"></span>
             </label>
         </div>
@@ -23,9 +23,9 @@
             <p class="led-family-text"></p>
             <p id="rbg-vals" class="led-family-text">Red: - Green: - Blue: -</p>
         </div>
-        <div id="sv-container">
-            <input id="sv-input" type="number" min="0" max="255">
-            <p id="sv-vals" class="led-family-text">SV: -</p>
+        <div id="brightness-container">
+            <input id="brightness-input" type="number" min="0" max="255">
+            <p id="brightness-vals" class="led-family-text">Brightness: -</p>
         </div>
         <div id="submit-container">
             <button id="set-led-values" class="led-family-text" type="button" onclick="passHSL()">Set values</button>
@@ -41,30 +41,30 @@
             r = Number("0x"+ colorPickerValue.substr(1,2))
             g = Number("0x" + colorPickerValue.substr(3,2))
             b = Number("0x" + colorPickerValue.substr(5,2))
-            // For SV
-            svValue = document.getElementById("sv-input").value
+            // For brightness
+            brightnessValue = document.getElementById("brightness-input").value
             // Do our own checks for a use inputted number
-            if (svValue.length > 3 || svValue.length == 0) 
+            if (brightnessValue.length > 3 || brightnessValue.length == 0) 
             {
-                alert("Valid range for SV is 0 to 255")
-                document.getElementById("sv-input").value = ""
+                alert("Valid range for brightness is 0 to 255")
+                document.getElementById("brightness-input").value = ""
                 return
             }
-            if (Number(svValue) < 0 || Number(svValue) > 255) 
+            if (Number(brightnessValue) < 0 || Number(brightnessValue) > 255) 
             {
-                alert("Valid range for SV is 0 to 255")
-                document.getElementById("sv-input").value = ""
+                alert("Valid range for brightness is 0 to 255")
+                document.getElementById("brightness-input").value = ""
                 return
             }
             // Send values to service if the LEDs are on
-            if (document.getElementById("led-toggle").dataset.state != "on")
+            if (document.getElementById("led-toggle").dataset.state != "1")
             {
                 alert("Cannot update the color or brightness of the LEDs if they are off")
                 return
             }
             else
             {
-                result = httpGet(`/update_led_config?sv=${svValue}&color=${r}%2C${g}%2C${b}`, print_response, false)
+                result = httpGet(`/update_led_config?brightness=${brightnessValue}&color=${r}%2C${g}%2C${b}`, print_response, false)
             }
 
             if (result == "BAD")
@@ -75,21 +75,21 @@
 
             // Update page
             document.getElementById("rbg-vals").innerText = "Red: " + r + " Green: " + g + " Blue: " + b
-            document.getElementById("sv-vals").innerText = "SV: " + svValue
+            document.getElementById("brightness-vals").innerText = "Brightness: " + brightnessValue
         }
 
         // Function for turning on and off LEDs
         function toggleLeds(e) 
         {
             var toggle = document.getElementById("led-toggle")
-            if (toggle.dataset.state == "on") 
+            if (toggle.dataset.state == "1") 
             {
-                toggle.dataset.state = "off"
+                toggle.dataset.state = "0"
             }
             else 
             {
                 // Turning on the LEDs from a fresh start will use the last values in the json. Just be aware of that.
-                toggle.dataset.state = "on"
+                toggle.dataset.state = "1"
             }
             result = httpGet("/update_led_config?state="+toggle.dataset.state, print_response, false)
             if (result == "BAD")
@@ -109,14 +109,14 @@
         function toggle(e) 
         {
             var toggle = document.getElementById("led-toggle")
-            if (toggle.dataset.state == "on") 
+            if (toggle.dataset.state == "1") 
             {
-                toggle.dataset.state = "off"
+                toggle.dataset.state = "0"
             }
             else 
             {
                 // Turning on the LEDs from a fresh start will use the last values in the json. Just be aware of that.
-                toggle.dataset.state = "on"
+                toggle.dataset.state = "1"
             }
             result = httpGet("/update_led_config?state="+toggle.dataset.state, print_response, false)
             if (result == "BAD")
