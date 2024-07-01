@@ -185,7 +185,7 @@ void loop() {
             else if (numNum == 2) {
               current_hue = val.toInt();
             }
-            else if (numNum == 5) {
+            else if (numNum == 3u) {
               current_brightness = val.toInt();
             }
             val = "";

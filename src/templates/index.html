@@ -5,31 +5,35 @@
         <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/mainpage.css') }}">
     </head>
     <body>
-        <p class="led-family-text">Joey's room LED website!:)</p>
-        <div id="activate-session-container">
+        <div class="title-wrapper">
+            <div>
+                <p class="title-content">Joey's room LED website!:)</p>
+            </div>
+            <div id="on-off-container">
+                <label id="led-switch" class="switch">
+                    <input name="led-toggle-post" value="value" id="led-toggle" type="checkbox" data-state="0" onclick="toggleLeds(event)" unchecked>
+                    <span class="slider round"></span>
+                </label>
+                <p></p>
+            </div>
+            <div id="color-container">
+                <input class="input" id="color-input" type="number" min="0" max="255">
+                <p id="color-vals" class="led-family-text">Color: -</p>
+            </div>
+            <div id="brightness-container">
+                <input class="input" id="brightness-input" type="number" min="0" max="255">
+                <p id="brightness-vals" class="led-family-text">Brightness: -</p>
+            </div>
+            <div id="submit-container">
+                <button id="set-led-values" class="led-family-text" type="button" onclick="passHSL()">Set values</button>
+            </div>
+        </div>
+        <!-- <div id="activate-session-container">
             <label id="session-switch" class="switch">
                 <input name="session-toggle-post" value="value" id="session-toggle" type="checkbox" data-state="0" onclick="toggleSession()" unchecked>
                 <span class="slider round"></span>
             </label>
-        </div>
-        <div id="on-off-container">
-            <label id="led-switch" class="switch">
-                <input name="led-toggle-post" value="value" id="led-toggle" type="checkbox" data-state="0" onclick="toggleLeds(event)" unchecked>
-                <span class="slider round"></span>
-            </label>
-        </div>
-        <div id="color-container">
-            <input class="led-family-color" type="color" id="html5colorpicker" value="#000000" style="width:10%;">
-            <p class="led-family-text"></p>
-            <p id="rbg-vals" class="led-family-text">Red: - Green: - Blue: -</p>
-        </div>
-        <div id="brightness-container">
-            <input id="brightness-input" type="number" min="0" max="255">
-            <p id="brightness-vals" class="led-family-text">Brightness: -</p>
-        </div>
-        <div id="submit-container">
-            <button id="set-led-values" class="led-family-text" type="button" onclick="passHSL()">Set values</button>
-        </div>
+        </div> -->
     </body>
 
     <script>
@@ -37,24 +41,24 @@
         function passHSL() 
         {
             // For colors
-            colorPickerValue = document.getElementById("html5colorpicker").value
-            r = Number("0x"+ colorPickerValue.substr(1,2))
-            g = Number("0x" + colorPickerValue.substr(3,2))
-            b = Number("0x" + colorPickerValue.substr(5,2))
+            colorValueStr = document.getElementById("color-input").value
+            colorValueNum = Number(colorValueStr)
             // For brightness
-            brightnessValue = document.getElementById("brightness-input").value
+            brightnessValueStr = document.getElementById("brightness-input").value
+            brightnessValueNum = Number(brightnessValueStr)
             // Do our own checks for a use inputted number
-            if (brightnessValue.length > 3 || brightnessValue.length == 0) 
-            {
-                alert("Valid range for brightness is 0 to 255")
-                document.getElementById("brightness-input").value = ""
-                return
+            colorBrightDict = {
+                "color" : [colorValueStr, colorValueNum],
+                "brightness" : [brightnessValueStr, brightnessValueNum] 
             }
-            if (Number(brightnessValue) < 0 || Number(brightnessValue) > 255) 
+            for (var key in colorBrightDict) 
             {
-                alert("Valid range for brightness is 0 to 255")
-                document.getElementById("brightness-input").value = ""
-                return
+                if (colorBrightDict[key][0].length > 3 || colorBrightDict[key][0].length == 0 || colorBrightDict[key][1] < 0 || colorBrightDict[key][1] > 255)
+                {
+                    alert(`Valid range for ${key} is 0 to 255`)
+                    document.getElementById(`${key}-input`).value = ""
+                    return                    
+                }
             }
             // Send values to service if the LEDs are on
             if (document.getElementById("led-toggle").dataset.state != "1")
@@ -64,18 +68,18 @@
             }
             else
             {
-                result = httpGet(`/update_led_config?brightness=${brightnessValue}&color=${r}%2C${g}%2C${b}`, print_response, false)
+                result = httpReq("POST", `/update_led_config?brightness=${brightnessValueStr}&color=${colorValueStr}`, print_response, false)
             }
 
             if (result == "BAD")
             {
                 alert("Issue updating configs")
-                reutrn
+                return
             }
-
+            console.log(result)
             // Update page
-            document.getElementById("rbg-vals").innerText = "Red: " + r + " Green: " + g + " Blue: " + b
-            document.getElementById("brightness-vals").innerText = "Brightness: " + brightnessValue
+            document.getElementById("color-vals").innerText = "Color: " + colorValueStr
+            document.getElementById("brightness-vals").innerText = "Brightness: " + brightnessValueStr
         }
 
         // Function for turning on and off LEDs
@@ -91,12 +95,13 @@
                 // Turning on the LEDs from a fresh start will use the last values in the json. Just be aware of that.
                 toggle.dataset.state = "1"
             }
-            result = httpGet("/update_led_config?state="+toggle.dataset.state, print_response, false)
+            result = httpReq("POST", "/update_led_config?state="+toggle.dataset.state, print_response, false)
             if (result == "BAD")
             {
                 alert("Issue updating configs")
                 reutrn
             }
+            console.log(result)
         }
 
         // Function for turning on and off LEDs
@@ -118,16 +123,17 @@
                 // Turning on the LEDs from a fresh start will use the last values in the json. Just be aware of that.
                 toggle.dataset.state = "1"
             }
-            result = httpGet("/update_led_config?state="+toggle.dataset.state, print_response, false)
+            result = httpReq("POST", "/update_led_config?state="+toggle.dataset.state, print_response, false)
             if (result == "BAD")
             {
                 alert("Issue updating configs")
                 reutrn
             }
+            console.log(result)
         }
 
         // How to get data/do things with (a)sync calls
-        function httpGet(theUrl, callback, async)
+        function httpReq(type, theUrl, callback, async)
         {
             var xmlHttp = new XMLHttpRequest();
             xmlHttp.onreadystatechange = function() 
@@ -137,7 +143,7 @@
                     callback(xmlHttp.responseText);
                 }
             }
-            xmlHttp.open("GET", theUrl, async); // true for synchronous 
+            xmlHttp.open(type, theUrl, async); // true for synchronous 
             xmlHttp.send(null);
         }
 

@@ -1,11 +1,15 @@
 from flask import Flask, render_template, request, flash, session
+from src.services.ArdLedWrapper import ArdLedWrapper
 import subprocess
 from markupsafe import escape
 import sqlite3
 import requests
 import json
+import time
 
 app = Flask(__name__)
+
+ard_wrapper = ArdLedWrapper()
 
 class FlaskLED():
     def __init__(self):
@@ -48,10 +52,12 @@ flask_led = FlaskLED()
 # Main route
 @app.route('/flask_led', methods=('GET', 'POST'))
 def hello_world():
+    while not ard_wrapper.connected:
+        ard_wrapper.connect_to_ard()
     return render_template('index.html')
 
 # Update whatever configs are passed
-@app.route('/update_led_config', methods=['GET'])
+@app.route('/update_led_config', methods=['POST'])
 def update_led_config():
     with open(flask_led.ard_file_path, "r+") as f:
         data = json.load(f)
@@ -70,15 +76,12 @@ def update_led_config():
                 else:
                     data["state"] = int(request.args[arg])
             if arg == "color":
-                # Convert to int
-                arg = [int(val) for val in request.args[arg].split(",")]
-                for color in arg:
-                    if color < flask_led.valid_color_brightness_range["min"] or color > flask_led.valid_color_brightness_range["max"]:
-                        print("Passed invalid color value, Error 404 lol")
-                        return "BAD"
-                    # Use default dict so we can avoid this?
+                val = int(request.args[arg])
+                if val < flask_led.valid_color_brightness_range["min"] or val > flask_led.valid_color_brightness_range["max"]:
+                    print("Passed invalid color value, Error 404 lol")
+                    return "BAD"
                 else:
-                    data["color"] = [*arg]
+                    data["color"] = val
             if arg == "brightness":
                 val = int(request.args[arg])
                 if val < flask_led.valid_color_brightness_range["min"] or val > flask_led.valid_color_brightness_range["max"]:
@@ -90,4 +93,6 @@ def update_led_config():
         f.seek(0)
         json.dump(data, f)
         f.truncate()
-    return str(data)
+    ard_wrapper.send_message(json.dumps(data)+"**")
+    msg = ard_wrapper.read_message(128)
+    return msg.decode("utf-8").replace("\n","").replace("\r","")

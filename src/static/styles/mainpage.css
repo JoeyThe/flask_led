@@ -4,10 +4,21 @@ body {
     padding: 0;
     background-color: lightblue;
     align-items: center;
+    width: 100%;
+    min-height: 100%;
 }
 
-.led-family-text {
-    font-size: 5vw;
+.title-wrapper {
+  display: inline-block; /* shrink to fit */
+  width: 100%;           /* whatever width you like */
+  position: relative;    /* so .content can use position: absolute */
+  text-align: center;
+  /* font-size; */
+}
+.title-wrapper::after {
+  padding-top: 10%; /* percentage of containing block _width_ */
+  display: block;
+  content: '';
 }
 
 .led-family-color {
