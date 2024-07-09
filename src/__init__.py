@@ -9,19 +9,28 @@ import time
 
 app = Flask(__name__)
 
-ard_wrapper = ArdLedWrapper()
-
 class FlaskLED():
     def __init__(self):
-        self.configs = {
-            "state": "0",
-            "color": [0,0,0],
-            "brightness": 0
+        self.ard_file_path = "src/services/led_config.json"
+        with open(self.ard_file_path, "r") as f:
+            data = json.load(f)
+        self.values = {
+            "state": data["state"],
+            "color": data["color"],
+            "brightness": data["brightness"]
         }
         self.sessions = 0
         self.valid_states = ["0", "1"]
         self.valid_color_brightness_range = {"min": 0, "max": 255}
-        self.ard_file_path = "src/services/led_config.json"
+
+    def update_values(self):
+        with open(self.ard_file_path, "r") as f:
+            data = json.load(f)
+        self.values = {
+            "state": data["state"],
+            "color": data["color"],
+            "brightness": data["brightness"]
+        }
 
     # def get_chcv(self):
     #     return self.CHSV
@@ -47,6 +56,7 @@ class FlaskLED():
     #     else:
     #         return False
 
+ard_wrapper = ArdLedWrapper()
 flask_led = FlaskLED()
 
 # Main route
@@ -54,7 +64,9 @@ flask_led = FlaskLED()
 def hello_world():
     while not ard_wrapper.connected:
         ard_wrapper.connect_to_ard()
-    return render_template('index.html')
+    flask_led.update_values()
+    print(flask_led.values["state"], flush=True)
+    return render_template('index.html', load_state=["Off" if flask_led.values["state"] == 1 else "On"][0], load_color=flask_led.values["color"], load_brightness=flask_led.values["brightness"])
 
 # Update whatever configs are passed
 @app.route('/update_led_config', methods=['POST'])
@@ -64,7 +76,7 @@ def update_led_config():
         # Loop through arguments
         for arg in request.args:
             # If the arg is not in the configs, return
-            if arg not in flask_led.configs:
+            if arg not in flask_led.values:
                 print("Passed invalid query argument, Error 404 lol")
                 return "BAD ARG"
             # Check each argument

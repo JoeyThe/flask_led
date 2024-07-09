@@ -4,40 +4,39 @@
         <title>Joey's website</title>
         <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/mainpage.css') }}">
     </head>
-    <body>
+    <body onload="setToggleButtonState()">
         <div class="title-wrapper">
             <div>
                 <p class="title-content">Joey's room LED website!:)</p>
             </div>
-            <div id="on-off-container">
+            <!-- <div id="on-off-container">
                 <label id="led-switch" class="switch">
-                    <input name="led-toggle-post" value="value" id="led-toggle" type="checkbox" data-state="0" onclick="toggleLeds(event)" unchecked>
+                    <input name="led-toggle-post" value="value" id="test" type="checkbox" data-state="0" onclick="toggleLeds(event)" unchecked>
                     <span class="slider round"></span>
                 </label>
+                <p></p>
+            </div> -->
+            <div>
+                <button class="button button5" id="led-toggle" data-state="0" onclick="toggleLeds(event)">{{ load_state }}</button>
                 <p></p>
             </div>
             <div id="color-container">
                 <input class="input" id="color-input" type="number" min="0" max="255">
-                <p id="color-vals" class="led-family-text">Color: -</p>
+                <p id="color-vals" class="led-family-text">Color: {{ load_color }}</p>
             </div>
             <div id="brightness-container">
                 <input class="input" id="brightness-input" type="number" min="0" max="255">
-                <p id="brightness-vals" class="led-family-text">Brightness: -</p>
+                <p id="brightness-vals" class="led-family-text">Brightness: {{ load_brightness }}</p>
             </div>
             <div id="submit-container">
                 <button id="set-led-values" class="led-family-text" type="button" onclick="passHSL()">Set values</button>
             </div>
         </div>
-        <!-- <div id="activate-session-container">
-            <label id="session-switch" class="switch">
-                <input name="session-toggle-post" value="value" id="session-toggle" type="checkbox" data-state="0" onclick="toggleSession()" unchecked>
-                <span class="slider round"></span>
-            </label>
-        </div> -->
     </body>
 
     <script>
         // Function for passing the HSL 
+        var load_state = "{{ load_state }}"
         function passHSL() 
         {
             // For colors
@@ -86,14 +85,17 @@
         function toggleLeds(e) 
         {
             var toggle = document.getElementById("led-toggle")
+            var toggleText = ""
             if (toggle.dataset.state == "1") 
             {
                 toggle.dataset.state = "0"
+                toggleText = "On"
             }
             else 
             {
                 // Turning on the LEDs from a fresh start will use the last values in the json. Just be aware of that.
                 toggle.dataset.state = "1"
+                toggleText = "Off"
             }
             result = httpReq("POST", "/update_led_config?state="+toggle.dataset.state, print_response, false)
             if (result == "BAD")
@@ -101,7 +103,7 @@
                 alert("Issue updating configs")
                 reutrn
             }
-            console.log(result)
+            document.getElementById("led-toggle").innerText = toggleText
         }
 
         // Function for turning on and off LEDs
@@ -150,6 +152,17 @@
         function print_response(response)
         {
             console.log(response)
+        }
+        
+        // Use JS to change state button
+        function setToggleButtonState()
+        {
+            console.log(load_state)
+            var toggle = document.getElementById("led-toggle")
+            if (load_state == "Off")
+            {
+                toggle.dataset.state = "1"
+            }
         }
     </script>
 </html>

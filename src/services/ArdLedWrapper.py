@@ -10,7 +10,7 @@ class ArdLedWrapper:
         self.SERIALPORT = "/dev/ttyACM0"
         self.BAUDRATE = 9600
         self.connected = False
-        self.ser = serial.Serial(self.SERIALPORT, self.BAUDRATE, timeout=1)
+        self.ser = serial.Serial(self.SERIALPORT, self.BAUDRATE, timeout=0.1)
 
         try:
             self.ser.open()
