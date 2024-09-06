@@ -4,7 +4,7 @@
         <title>Joey's website</title>
         <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/mainpage.css') }}">
     </head>
-    <body onload="setToggleButtonState()">
+    <body onload="onInit()">
         <div class="title-wrapper">
             <div>
                 <p class="title-content">Joey's room LED website!:)</p>
@@ -21,11 +21,11 @@
                 <p></p>
             </div>
             <div id="color-container">
-                <input class="input" id="color-input" type="number" min="0" max="255">
+                <input class="input" id="color-input" type="number" min="0" max="1">
                 <p id="color-vals" class="led-family-text">Color: {{ load_color }}</p>
             </div>
             <div id="brightness-container">
-                <input class="input" id="brightness-input" type="number" min="0" max="255">
+                <input class="input" id="brightness-input" type="number" min="0" max="1">
                 <p id="brightness-vals" class="led-family-text">Brightness: {{ load_brightness }}</p>
             </div>
             <div id="submit-container">
@@ -35,8 +35,25 @@
     </body>
 
     <script>
-        // Function for passing the HSL 
+        // Variables
         var load_state = "{{ load_state }}"
+        var color_min = parseInt("{{ min_color }}")
+        var color_max = parseInt("{{ max_color }}")
+        var brightness_min = parseInt("{{ min_brightness }}")
+        var brightness_max = parseInt("{{ max_brightness }}")
+        // On load function
+        function onInit()
+        {
+            // Set toggle button state
+            setToggleButtonState()
+            // Set brightness and color min and maxes
+            document.getElementById("color-input").setAttribute("min", color_min)
+            document.getElementById("color-input").setAttribute("max", color_max)
+            document.getElementById("brightness-input").setAttribute("min", brightness_min)
+            document.getElementById("brightness-input").setAttribute("max", brightness_max)
+        }
+
+        // Function for passing the HSL 
         function passHSL() 
         {
             // For colors
@@ -47,14 +64,14 @@
             brightnessValueNum = Number(brightnessValueStr)
             // Do our own checks for a use inputted number
             colorBrightDict = {
-                "color" : [colorValueStr, colorValueNum],
-                "brightness" : [brightnessValueStr, brightnessValueNum] 
+                "color" : [colorValueStr, colorValueNum, color_min, color_max],
+                "brightness" : [brightnessValueStr, brightnessValueNum, brightness_min, brightness_max] 
             }
             for (var key in colorBrightDict) 
             {
-                if (colorBrightDict[key][0].length > 3 || colorBrightDict[key][0].length == 0 || colorBrightDict[key][1] < 0 || colorBrightDict[key][1] > 255)
+                if ((colorBrightDict[key][0].length > 3) || (colorBrightDict[key][0].length == 0) || (colorBrightDict[key][1] < colorBrightDict[key][2]) || (colorBrightDict[key][1] > colorBrightDict[key][3]))
                 {
-                    alert(`Valid range for ${key} is 0 to 255`)
+                    alert(`Valid range for ${key} is ${colorBrightDict[key][2]} to ${colorBrightDict[key][3]}`)
                     document.getElementById(`${key}-input`).value = ""
                     return                    
                 }
@@ -75,7 +92,6 @@
                 alert("Issue updating configs")
                 return
             }
-            console.log(result)
             // Update page
             document.getElementById("color-vals").innerText = "Color: " + colorValueStr
             document.getElementById("brightness-vals").innerText = "Brightness: " + brightnessValueStr
@@ -131,7 +147,6 @@
                 alert("Issue updating configs")
                 reutrn
             }
-            console.log(result)
         }
 
         // How to get data/do things with (a)sync calls
@@ -157,7 +172,6 @@
         // Use JS to change state button
         function setToggleButtonState()
         {
-            console.log(load_state)
             var toggle = document.getElementById("led-toggle")
             if (load_state == "Off")
             {

@@ -5,10 +5,10 @@ import traceback
 import json
 import os
 
-SERIALPORT = "/dev/ttyACM0"
+SERIALPORT = "/flask_led/tty"
 BAUDRATE = 9600
 
-ser = serial.Serial(SERIALPORT, BAUDRATE, timeout=1)
+ser = serial.Serial(SERIALPORT, BAUDRATE, timeout=3)
 
 try:
     ser.open()
